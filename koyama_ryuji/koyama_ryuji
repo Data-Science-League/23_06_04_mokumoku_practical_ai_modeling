@@ -1,0 +1,239 @@
+import pandas as pd
+from sklearn.datasets import load_iris
+import matplotlib.pyplot as plt
+%matplotlib inline
+
+iris = load_iris()
+iris.data.shape
+print(iris.target_names)
+df_iris = pd.DataFrame(iris.data, columns = iris.feature_names)
+df_iris.describe()
+
+import seaborn as sns
+df_temp = df_iris.copy()
+sns.pairplot(df_temp)
+from sklearn.cluster import KMeans
+model = KMeans(n_clusters=3, random_state=0, init="random")
+cls_data = df_iris.copy()
+model.fit(cls_data)
+
+cluster=model.predict(cls_data)
+print(cluster)
+print(type(cluster))
+cls_data["cluster"] = cluster
+sns.pairplot(cls_data, hue="cluster")
+cluster_center = pd.DataFrame(model.cluster_centers_)
+cluster_center.columns = cls_data.columns[:4]
+display(cluster_center)
+plt.scatter(cls_data["sepal length (cm)"], cls_data["sepal width (cm)"], c = cls_data["cluster"])
+plt.xlabel("sepal length (cm)")
+plt.ylabel("sepal width (cm)")
+plt.scatter(cluster_center["sepal length (cm)"], cluster_center["sepal width (cm)"], marker = "*", color = "red")
+display(cls_data.groupby("cluster").mean().round(2))
+cls_data["target"] = iris.target
+cls_data.loc[cls_data["target"] == 0, "target"] = "setosa"
+cls_data.loc[cls_data["target"] == 1, "target"] = "versicolor"
+cls_data.loc[cls_data["target"] == 2, "target"] = "virginica"
+display(cls_data.groupby("target").mean().round(2))
+
+from sklearn.metrics import accuracy_score
+from sklearn.metrics import adjusted_rand_score
+ari = "ARI: {:.2f}".format(adjusted_rand_score(iris.target, cls_data["cluster"]))
+accuracy = "Accuracy: {:.2f}".format(accuracy_score(iris.target, cls_data["cluster"]))
+print(ari)
+print(accuracy)
+print(type(cluster))
+
+model = KMeans(n_clusters = 3, random_state = 0, init = "k-means++")
+cls_data = df_iris.copy()
+model.fit(cls_data)
+cluster = model.predict(cls_data)
+cls_data["cluster"] = cluster
+sns.pairplot(cls_data, hue="cluster")
+cls_data.shape()
+print(cls_data)
+ari = "ARI: {:.2f}".format(adjusted_rand_score(iris.target, cls_data["cluster"]))
+print(ari)
+
+model = KMeans(n_clusters = 2, random_state = 0)
+cls_data = df_iris.copy()
+cls_data["cluster"] = model.fit_predict(cls_data)
+sns.pairplot(cls_data, hue="cluster")
+print("ARI: {:.2f}".format(adjusted_rand_score(iris.target, cls_data["cluster"])))
+
+from sklearn.datasets import make_blobs
+from sklearn import cluster, preprocessing
+X,y=make_blobs(n_samples=150,
+               n_features=2,
+               centers=3,
+              cluster_std=0.5,
+              shuffle=True,
+              random_state=0)
+sc=preprocessing.StandardScaler()
+X_norm=sc.fit_transform(X)
+type(X_norm)
+x=X_norm[:, 0]
+y=X_norm[:, 1]
+plt.figure(figsize=(10, 3))
+plt.scatter(x, y)
+plt.show
+
+distortions = []
+for i in range(1, 11):
+    km = KMeans(n_clusters = i,
+               n_init=10,
+               max_iter=300,
+               random_state=0)
+    km.fit(X)
+    distortions.append(km.inertia_)
+
+plt.plot(range(1,11), distortions, marker = "o")
+plt.xticks(range(1, 11))
+plt.xlabel("Number of clusters")
+plt.ylabel("Distortion")
+plt.show()
+
+km = KMeans(n_clusters = 3,
+           n_init = 10,
+           max_iter = 300,
+           random_state = 0)
+z_km = km.fit(X_norm)
+type(z_km)
+print(z_km)
+plt.figure(figsize=(10, 3))
+plt.scatter(x, y, c=z_km.labels_)
+plt.scatter(z_km.cluster_centers_[:, 0], z_km.cluster_centers_[:,1], s = 250, marker = "*", c = "red")
+plt.show()
+
+import numpy as np
+from matplotlib import cm
+from sklearn.metrics import silhouette_samples
+cluster_labels = np.unique(z_km.labels_)
+n_clusters = cluster_labels.shape[0]
+silhouette_vals = silhouette_samples(X, z_km.labels_)
+print(z_km.labels_)
+type(z_km.labels_)
+z_km.labels_.shape
+type(cluster_labels)
+cluster_labels.shape
+print(cluster_labels)
+type(silhouette_vals)
+silhouette_vals.shape
+print(silhouette_vals)
+
+y_ax_lower, y_ax_upper = 0, 0
+yticks = []
+
+for i, c in enumerate(cluster_labels):
+    c_silhouette_vals = silhouette_vals[z_km.labels_==c]
+    print(len(c_silhouette_vals))
+    c_silhouette_vals.sort()
+    y_ax_upper += len(c_silhouette_vals)
+    color = cm.jet(float(i)/n_clusters)
+    plt.barh(range(y_ax_lower, y_ax_upper),
+            c_silhouette_vals,
+            height = 1.0,
+            edgecolor="none",
+            color=color
+        )
+    yticks.append((y_ax_lower + y_ax_upper)/2.)
+    y_ax_lower += len(c_silhouette_vals)
+    
+silhouette_avg = np.mean(silhouette_vals)
+plt.axvline(silhouette_avg, color = "red", linestyle = "--")
+plt.ylabel("Cluster")
+plt.xlabel("Silhouette Coefficient")
+plt.yticks(yticks, cluster_labels + 1)
+type(c_silhouette_vals)
+print(c_silhouette_vals)
+
+km = KMeans(n_clusters = 2,
+           n_init = 10,
+           max_iter = 300,
+           random_state = 0)
+z_km = km.fit(X_norm)
+
+plt.figure(figsize = (10, 3))
+plt.scatter(x, y, c = z_km.labels_)
+plt.scatter(z_km.cluster_centers_[:, 0], z_km.cluster_centers_[:, 1], s = 250, marker = "*", c = "red")
+plt.show
+type(z_km.cluster_centers_)
+print(z_km.cluster_centers_)
+
+from sklearn.datasets import load_iris
+import matplotlib.pyplot as plt
+X = load_iris().data[::10, 2:4]
+fig = plt.figure(figsize = (6, 6))
+ax = fig.add_subplot(1, 1, 1, title = "iris")
+plt.scatter(X[:, 0], X[:, 1])
+for i, element in enumerate(X):
+    plt.text(element[0] + 0.02, element[1] + 0.02, i)
+plt.show()
+
+import pandas as pd
+from scipy.cluster.hierarchy import linkage
+Z = linkage(X, method = "ward", metric = "euclidean")
+pd.DataFrame(Z)
+
+from scipy.cluster.hierarchy import dendrogram
+import matplotlib.pyplot as plt
+fig2, ax2 = plt.subplots(figsize = (20, 5))
+ax2 = dendrogram(Z)
+fig2.show()
+
+from scipy.cluster.hierarchy import fcluster
+clusters = fcluster(Z, t = 3, criterion = "maxclust")
+for i, c in enumerate(clusters):
+    print(i, c)
+print(clusters)
+print(Z)
+clusters1 = fcluster(Z, 1.6, criterion = "distance")
+print(clusters1)
+for i, c in enumerate(clusters1):
+    print(i, c)
+
+from sklearn.datasets import load_iris
+import matplotlib.pyplot as plt
+X = load_iris().data[::10]
+fig = plt.figure(figsize = (6, 3))
+ax = fig.add_subplot(1, 1, 1, title = "iris")
+plt.scatter(X[:, 0], X[:, 1])
+for i, element in enumerate(X):
+    plt.text(element[0] + 0.02, element[1] + 0.02, i)
+plt.show()
+
+Z = linkage(X, method = "single", metric = "euclidean")
+fig2, ax2 = plt.subplots(figsize = (6, 3))
+ax2 = dendrogram(Z)
+fig2.suptitle("single")
+fig2.show()
+
+Z = linkage(Z, method = "ward", metric = "euclidean")
+fig2, ax2 = plt.subplots(figsize = (6, 3))
+ax2 = dendrogram(Z)
+fig2.suptitle("ward")
+fig2.show()
+
+Z = linkage(X, method = "complete", metric = "euclidean")
+fig2, ax2 = plt.subplots(figsize = (6, 3))
+ax2 = dendrogram(Z)
+fig2.suptitle("complete")
+fig2.show()
+
+Z = linkage(X, method = "ward", metric = "euclidean")
+fig2, ax2 = plt.subplots(figsize = (6, 3))
+ax2 = dendrogram(Z)
+fig2.suptitle("ward")
+fig2.show()
+
+Z = linkage(X, method = "average", metric = "euclidean")
+fig2, ax2 = plt.subplots(figsize = (6, 3))
+ax2 = dendrogram(Z)
+fig2.suptitle("average")
+fig2.show()
+
+Z = linkage(X, method = "ward", metric = "euclidean")
+fig2, ax2 = plt.subplots(figsize = (6, 3))
+ax2 = dendrogram(Z)
+fig2.suptitle("ward")
+fig2.show()
