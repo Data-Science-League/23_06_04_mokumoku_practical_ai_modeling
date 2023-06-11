@@ -1,0 +1,184 @@
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from sklearn import cluster, preprocessing
+from sklearn import datasets
+
+X, z = datasets.make_moons(n_samples = 200, noise = 0.05, random_state = 0)
+sc = preprocessing.StandardScaler()
+X_norm = sc.fit_transform(X)
+display(X_norm)
+
+X_norm.shape
+x = X_norm[:, 0]
+y = X_norm[:, 1]
+plt.figure(figsize = (10, 3))
+plt.scatter(x, y, c=z)
+plt.show
+
+km = cluster.KMeans(n_clusters = 2)
+z_km = km.fit(X_norm)
+
+plt.figure(figsize = (10, 3))
+plt.scatter(x, y, c = z_km.labels_)
+plt.scatter(z_km.cluster_centers_[:, 0], z_km.cluster_centers_[:, 1], s = 250, marker = "*", c = "red")
+plt.show
+
+spc = cluster.SpectralClustering(n_clusters = 2, affinity = "nearest_neighbors")
+z_spc = spc.fit(X_norm)
+
+plt.figure(figsize = (10, 3))
+plt.scatter(x, y, c = z_spc.labels_)
+plt.show()
+
+df_wine_all = pd.read_csv("https://archive.ics.uci.edu/ml/machine-learning-databases/wine/wine.data", header = None)
+df_wine = df_wine_all[[0, 10, 13]]
+df_wine.columns = [u"class", u"color", u"proline"]
+pd.DataFrame(df_wine)
+
+X = df_wine[["color", "proline"]]
+sc = preprocessing.StandardScaler()
+X_norm = sc.fit_transform(X)
+x = X_norm[:, 0]
+y = X_norm[:, 1]
+z = df_wine["class"]
+plt.figure(figsize = (10, 3))
+plt.scatter(x, y, c = z)
+plt.show
+
+km = cluster.KMeans(n_clusters = 3)
+z_km = km.fit(X_norm)
+plt.figure(figsize = (10, 3))
+plt.scatter(x, y, c = z_km.labels_)
+plt.scatter(z_km.cluster_centers_[:, 0], z_km.cluster_centers_[:, 1], s = 250, marker = "*", c = "red")
+plt.show
+
+ms = cluster.MeanShift(seeds = X_norm)
+ms.fit(X_norm)
+labels = ms.labels_
+cluster_centers = ms.cluster_centers_
+print(cluster_centers)
+
+plt.figure(figsize = (10, 3))
+plt.scatter(x, y, c = labels)
+plt.plot(cluster_centers[0, 0], cluster_centers[0, 1], marker = "*", c = "red", markersize = 14)
+plt.plot(cluster_centers[1, 0], cluster_centers[1, 1], marker = "*", c = "red", markersize = 14)
+plt.show
+
+cluster_centers.shape
+plt.scatter(cluster_centers[:, 0], cluster_centers[:, 1], s = 250, marker = "*", c = "red")
+plt.show
+
+!pip install pyclustering
+
+from pyclustering.cluster.xmeans import xmeans
+from pyclustering.cluster.center_initializer import kmeans_plusplus_initializer
+xm_c = kmeans_plusplus_initializer(X_norm, 2).initialize()
+xm_i = xmeans(data = X_norm, initial_centers = xm_c, kmax = 20, ccore = True)
+xm_i.process()
+z_xm = np.ones(X_norm.shape[0])
+for k in range(len(xm_i._xmeans__clusters)):
+    z_xm[xm_i._xmeans__clusters[k]] = k + 1
+plt.figure(figsize = (10, 3))
+plt.scatter(x, y, c = z_xm)
+centers = np.array(xm_i._xmeans__centers)
+plt.scatter(centers[:, 0], centers[:, 1], s = 250, marker = "*", c = "red")
+plt.show
+
+type(xm_i._xmeans__clusters)
+type(z_xm)
+print(z_xm)
+z_xm.shape
+
+z_xm[xm_i._xmeans__clusters[k]] = k + 1
+
+plt.figure(figsize = (10, 3))
+plt.scatter(x, y, c = z_km.labels_)
+plt.scatter(z_km.cluster_centers_[:, 0], z_km.cluster_centers_[:, 1], s = 250, marker = "*", c = "red")
+plt.suptitle("k-means")
+plt.show
+
+from sklearn import mixture
+gmm = mixture.GaussianMixture(n_components = 3, covariance_type = "full")
+z_gmm = gmm.fit(X_norm)
+z_gmm = z_gmm.predict(X_norm)
+
+plt.figure(figsize = (10, 3))
+plt.scatter(x, y, c = z_gmm)
+plt.suptitle("gmm")
+plt.show
+
+plt.figure(figsize = (10, 3))
+plt.scatter(x, y, c = z_km.labels_)
+plt.scatter(z_km.cluster_centers_[:, 0], z_km.cluster_centers_[:, 1], s = 250, marker = "*", c = "red")
+plt.suptitle("k-means")
+plt.show
+
+from sklearn import mixture
+vbgmm = mixture.BayesianGaussianMixture(n_components = 10, random_state = 0)
+vbgmm = vbgmm.fit(X_norm)
+labels = vbgmm.predict(X_norm)
+
+plt.figure(figsize = (10, 3))
+plt.scatter(x, y, c = labels)
+plt.suptitle("vbgmm")
+plt.show
+
+x_tick = np.array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
+plt.figure(figsize = (10, 2))
+plt.bar(x_tick, vbgmm.weights_, width = 0.7, tick_label = x_tick)
+plt.suptitle("vbgmm_weights")
+plt.show
+
+vbgmm = mixture.BayesianGaussianMixture(n_components = 3, random_state = 0)
+vbgmm = vbgmm.fit(X_norm)
+labels = vbgmm.predict(X_norm)
+
+plt.figure(figsize = (10, 3))
+plt.scatter(x, y, c = labels)
+plt.suptitle("vbgmm")
+plt.show
+
+x_tick = np.array([1, 2, 3])
+plt.figure(figsize = (10, 2))
+plt.bar(x_tick, vbgmm.weights_, width = 0.7, tick_label = x_tick)
+plt.suptitle("vbgmm_weights")
+plt.show
+
+plt.figure(figsize = (10, 3))
+plt.scatter(x, y, c = z_km.labels_)
+plt.scatter(z_km.cluster_centers_[:, 0], z_km.cluster_centers_[:, 1], s = 250, marker = "*", c = "red")
+plt.suptitle("kmeans")
+plt.show
+
+minikm = cluster.MiniBatchKMeans(n_clusters = 3, batch_size = 100)
+z_minikm = minikm.fit(X_norm)
+
+plt.figure(figsize = (10, 3))
+plt.scatter(x, y, c = z_minikm.labels_)
+plt.scatter(z_minikm.cluster_centers_[:, 0], z_minikm.cluster_centers_[:, 1], s = 250, marker = "*", c = "red")
+plt.suptitle("mini-batch-kmeans")
+plt.show
+
+X = datasets.make_blobs(n_samples = 1000, random_state = 10, centers = 5, cluster_std = 1.2)[0]
+sc = preprocessing.StandardScaler()
+X_norm = sc.fit_transform(X)
+x = X_norm[:, 0]
+y = X_norm[:, 1]
+plt.figure(figsize = (10, 3))
+plt.scatter(x, y)
+plt.suptitle("blob")
+plt.show
+
+X_moon = datasets.make_moons(n_samples = 1000, noise = 0.05, random_state = 0)[0]
+type(X_moon)
+
+sc = preprocessing.StandardScaler()
+X_moon_norm = sc.fit_transform(X_moon)
+x_moon = X_moon_norm[:, 0]
+y_moon = X_moon_norm[:, 1]
+plt.figure(figsize = (10, 3))
+plt.scatter(x_moon, y_moon)
+plt.suptitle("moon")
+plt.show
+
