@@ -1,0 +1,134 @@
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.tree import DecisionTreeRegressor
+import numpy as np
+
+data_url = "http://lib.stat.cmu.edu/datasets/boston"
+raw_df = pd.read_csv(data_url, sep="\s+", skiprows=22, header=None)
+data = np.hstack([raw_df.values[::2, :], raw_df.values[1::2, :2]])
+target = raw_df.values[1::2, 2]
+
+df = pd.DataFrame(data)
+
+col_names = ['CRIM', 'ZN', 'INDUS', 'CHAS', 'NOX', 'RM', 'AGE', 'DIS', 'RAD', 'TAX', 'PTRATIO', 'B', 'LSTAT']
+for i, col_name in enumerate(col_names):
+    df = df.rename(columns={i: col_name})
+
+df_target = pd.DataFrame(target)
+df_target = df_target.rename(columns={0: 'MEDV'})
+
+X = df
+y = df_target
+
+from sklearn.model_selection import train_test_split
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=0)
+
+print(len(X_train))
+display(X_train.head(1))
+print(len(X_test))
+display(X_test.head(1))
+
+tree_reg = DecisionTreeRegressor(max_depth=3, random_state=0).fit(X_train, y_train)
+
+import matplotlib.pyplot as plt
+import numpy as np
+
+features = X_train.columns
+importances = tree_reg.feature_importances_
+indices = np.argsort(importances)
+
+plt.figure(figsize=(6, 6))
+plt.barh(range(len(indices)), importances[indices], color='b', align='center')
+plt.yticks(range(len(indices)), features[indices])
+plt.show()
+
+X_test_pred = X_test.copy()
+X_test_pred['pred'] = np.round(tree_reg.predict(X_test), 2)
+X_test_pred.describe()[['RM', 'LSTAT', 'CRIM', 'DIS', 'PTRATIO', 'pred']]
+
+X_test_pred.sort_values('RM')
+
+import shap
+explainer = shap.TreeExplainer(tree_reg)
+explainer
+
+shap_values = explainer.shap_values(X_test)
+shap_values
+
+shap.summary_plot(
+shap_values=shap_values,
+features=X_test,
+plot_type='bar',
+max_display=5)
+
+shap.summary_plot(
+shap_values=shap_values,
+features=X_test,
+plot_type='dot',
+max_display=5)
+
+shap.dependence_plot(
+ind='LSTAT',
+interaction_index=None,
+shap_values=shap_values,
+features=X_test)
+
+shap.dependence_plot(
+ind='LSTAT',
+interaction_index='RM',
+shap_values=shap_values,
+features=X_test)
+
+shap.initjs()
+row_index = X_test.index.get_loc(253)
+shap.force_plot(
+base_value = explainer.expected_value,
+shap_values = shap_values[row_index, :],
+features=X_test.iloc[row_index, :])
+
+row_index = X_test.index.get_loc(253)
+shap.plots._waterfall.waterfall_legacy(
+expected_value = explainer.expected_value[0],
+shap_values = shap_values[row_index, :],
+features = X_test.iloc[row_index, :])
+
+import pandas as pd
+from sklearn.datasets import load_breast_cancer
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+load_data = load_breast_cancer()
+tg_df = pd.DataFrame(load_data.data, columns = load_data.feature_names)
+tg_df['y'] = load_data.target
+X = tg_df[tg_df.columns[tg_df.columns != 'y']]
+y = tg_df['y']
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=0)
+
+rf_cls = RandomForestClassifier(max_depth=3, random_state=0).fit(X_train, y_train)
+
+explainer = shap.TreeExplainer(rf_cls)
+explainer
+
+shap_values = explainer.shap_values(X_test)
+print(len(shap_values))
+print(shap_values)
+
+shap.summary_plot(
+shap_values=shap_values,
+features=X_test,
+plot_type='bar',
+max_display=5)
+
+for i in range(2):
+    print('Class', i)
+    shap.dependence_plot(
+    ind='worst concave points',
+    interaction_index=None,
+    shap_values=shap_values[i],
+    features=X_test)
+
+shap.initjs()
+row_index = 2
+for i in range(2):
+    print('Class', i)
+    display(shap.force_plot(explainer.expected_value[i], shap_values[i][row_index, :], X_test.iloc[row_index, :]))

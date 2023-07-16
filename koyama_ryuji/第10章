@@ -1,0 +1,134 @@
+from pycaret.datasets import get_data
+boston_data_all = get_data('boston')
+
+boston_data = boston_data_all.sample(frac = 0.90, random_state = 0).reset_index(drop=True)
+boston_data_unseen = boston_data_all.drop(boston_data.index).reset_index(drop=True)
+print('All Data:' + str(boston_data_all.shape))
+print(str(boston_data.shape))
+print(str(boston_data_unseen.shape))
+
+from pycaret.regression import *
+ret = setup(boston_data,
+            target= 'medv',
+            session_id = 0,
+            normalize = False,
+           )
+
+from pycaret.regression import *
+ret = setup(boston_data,
+           target = 'medv',
+           session_id=0,
+           normalize = False,
+           numeric_features = ['chas'],
+           categorical_features = ['rad'])
+
+ret = setup(boston_data,
+           target = 'medv',
+           session_id = 0,
+           normalize = False,
+           numeric_features = ['chas'],
+           categorical_features = ['rad'],
+           train_size = 0.8,)
+
+compare_models(sort = 'R2', fold = 10)
+
+rf = create_model('rf', fold = 10)
+
+tuned_rf = tune_model(rf, optimize = "r2", fold = 10)
+tuned_rf
+
+tuned_rf = tune_model(rf, optimize = "r2", fold = 10, n_iter = 50)
+tuned_rf
+
+evaluate_model(tuned_rf)
+
+plot_model(tuned_rf, "feature")
+
+plot_model(tuned_rf, "residuals")
+
+final_rf = finalize_model(tuned_rf)
+
+predict_model(final_rf)
+
+predictions = predict_model(final_rf, data = boston_data_unseen)
+print(predictions)
+
+save_model(final_rf, model_name="final_rf_model")
+%ls
+
+load_tuned_rf_model = load_model(model_name = "final_rf_model")
+load_tuned_rf_model
+
+predictions = predict_model(load_tuned_rf_model, data = boston_data_unseen)
+print(predictions)
+
+import shap
+interpret_model(tuned_rf)
+
+interpret_model(tuned_rf, plot=("correlation"))
+
+interpret_model(tuned_rf, plot="reason", observation = 1)
+
+import pandas as pd
+from sklearn.datasets import load_breast_cancer
+load_data = load_breast_cancer()
+tg_df_all = pd.DataFrame(load_data.data, columns = load_data.feature_names)
+tg_df_all['y'] = load_data.target
+tg_df_all
+
+tg_df = tg_df_all.sample(frac = 0.90, random_state = 0).reset_index(drop=True)
+
+tg_df_unseen = tg_df_all.drop(tg_df.index).reset_index(drop=True)
+
+from pycaret.classification import *
+ret = setup(data = tg_df,
+           target = 'y',
+           session_id=0,
+           normalize = False,
+           train_size = 0.6)
+
+models()
+
+compare_models(sort = 'F1', fold = 10)
+
+ridge = create_model('ridge', fold = 10)
+
+tuned_ridge = tune_model(ridge, optimize = 'F1', fold = 10, n_iter = 100)
+tuned_ridge
+
+evaluate_model(tuned_ridge)
+
+plot_model(tuned_ridge, 'feature')
+
+final_ridge = finalize_model(tuned_ridge)
+predict_model(final_ridge)
+predictions = predict_model(final_ridge, data = tg_df_unseen)
+print(predictions)
+
+import pandas as pd
+from sklearn.datasets import load_iris
+iris = load_iris()
+df_iris = pd.DataFrame(iris.data, columns = iris.feature_names)
+
+from pycaret.clustering import *
+data_clust = setup(data = df_iris,
+                  normalize = False,
+                  session_id = 0)
+
+models()
+
+kmeans = create_model('kmeans', num_clusters = 3)
+print(kmeans)
+
+plot_model(kmeans)
+
+plot_model(kmeans, plot = 'elbow')
+
+plot_model(kmeans, plot = 'silhouette')
+
+df_iris = df_iris.astype('double')
+
+ret = predict_model(kmeans, data=df_iris)
+
+df_iris.info()
+

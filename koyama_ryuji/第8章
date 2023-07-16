@@ -1,0 +1,93 @@
+from sklearn.datasets import load_breast_cancer
+
+load_data = load_breast_cancer()
+import pandas as pd
+
+df = pd.DataFrame(load_data.data, columns=load_data.feature_names)
+df['y'] = load_data.target
+
+from sklearn.model_selection import train_test_split
+
+X = df[['mean radius', 'mean texture']]
+y = df['y']
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=0)
+
+print(len(X_train))
+
+from sklearn.ensemble import RandomForestClassifier
+
+rf_cls = RandomForestClassifier(max_depth=3, random_state=0).fit(X_train, y_train)
+
+y_train_pred = rf_cls.predict(X_train)
+y_test_pred = rf_cls.predict(X_test)
+
+from sklearn.metrics import accuracy_score
+
+print(f'訓練データ正解率: {accuracy_score(y_train, y_train_pred)}')
+print(f'テストデータ正解率: {accuracy_score(y_test, y_test_pred)}')
+
+from sklearn.metrics import confusion_matrix
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+matrix = confusion_matrix(y_test, y_test_pred)
+
+sns.heatmap(matrix.T, square=True, annot=True)
+plt.xlabel('True Label')
+plt.ylabel('Pred Label')
+plt.show()
+
+from sklearn.metrics import precision_score
+
+print(f'訓練データ適合率: {precision_score(y_train, y_train_pred, pos_label=0)}')
+print(f'テストデータ適合率: {precision_score(y_test, y_test_pred, pos_label=0)}')
+
+from sklearn.metrics import f1_score
+
+print(f'訓練データの適合率: {f1_score(y_train, y_train_pred, pos_label=0)}')
+print(f'テストデータの適合率: {f1_score(y_test, y_test_pred, pos_label=0)}')
+
+from sklearn.metrics import classification_report
+
+print('Train Score Report')
+print(classification_report(y_train, y_train_pred))
+print('Test Score Report')
+print(classification_report(y_test, y_test_pred))
+
+pred_proba_train = rf_cls.predict_proba(X_train)
+pred_proba_test = rf_cls.predict_proba(X_test)
+
+print(pred_proba_train[:5])
+print(pred_proba_test[:5])
+
+import numpy as np
+
+x_min, x_max = X['mean radius'].min() - 0.5, X['mean radius'].max() + 0.5
+y_min, y_max = X['mean texture'].min() - 0.5, X['mean texture'].max() + 0.5
+
+step = 0.5
+x_range = np.arange(x_min, x_max, step)
+y_range = np.arange(y_min, y_max, step)
+xx, yy = np.meshgrid(x_range, y_range)
+
+Z = rf_cls.predict_proba(np.c_[xx.ravel(), yy.ravel()])[:, 0]
+Z = Z.reshape(xx.shape)
+
+plt.figure(figsize=(10, 7))
+plt.contourf(xx, yy, X, alpha=0.8, cmap=plt.cm.coolwarm)
+plt.colorbar()
+plt.scatter(X_train['mean radius'], X_train['mean texture'], c=y_train, marker='o', edgecolors='k', cmap=plt.cm.coolwarm_r, label='Train')
+plt.scatter(X_test['mean radius'], X_test['mean texture'], c=y_test, marker='^', edgecolors='k', cmap=plt.cm.coolwarm_r, label='Test')
+plt.xlabel('mean radius')
+plt.ylabel('mean texture')
+plt.legend()
+plt.show()
+
+from sklearn.metrics import precision_recall_curve
+from sklearn.metrics import auc
+
+precision, recall, thresholds = precision_recall_curve(y_test, pred_proba_test[:, 0], pos_label=0)
+
+print(precision[:3])
+print(recall[:3])
+print(thresholds[:3])
